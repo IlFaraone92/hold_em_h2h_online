@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh_tw">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texas Hold'em Online</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courgette&display=swap');
+
+        /* --- 通用基礎樣式 --- */
+        body {
+            font-family: 'Courgette', cursive;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            margin: 0;
+            padding: 0;
+        }
+
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            overflow: auto;
+            background-image: url(resource/bg.jpg);
+            background-size: cover;
+            /* **讓背景圖片覆蓋整個元素** */
+            background-repeat: no-repeat;
+            /* 不重複背景圖片 */
+            background-position: center center;
+            /* **讓圖片在元素中水平垂直置中** */
+            background-attachment: fixed;
+        }
+
+        /* 確保遊戲標題樣式正確 */
+        #game-title {
+            width: 100%;
+            text-align: center;
+            padding: 20px 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            /* position: sticky; top: 0; z-index: 1000; box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5); */
+            /* 如果希望標題固定在遊戲畫面頂部，保留 sticky。如果不需要固定，可以移除 sticky 相關屬性 */
+        }
+
+        #game-title span {
+            font-size: 60px;
+            color: #FFD700;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.9);
+            letter-spacing: 2px;
+        }
+
+        /* --- 牌面相關通用樣式 --- */
+        .card-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            min-height: 150px;
+            padding: 10px 0;
+            margin: 20px auto;
+            width: 1000px;
+            max-width: 90%;
+        }
+
+        /* 所有圖片的基礎陰影、圓角和過渡效果 */
+        .card-container img {
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .card-container img:hover {
+            transform: translateY(-5px) scale(1.1);
+        }
+
+        /* 牌面圖片的尺寸 */
+        .card-container img:not([alt$="Avatar"]):not([alt$="Token"]) {
+            width: 90px;
+            height: 125px;
+        }
+
+        /* 頭像圖片的尺寸和樣式 */
+        .card-container img[alt$="Avatar"] {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #f39c12;
+        }
+
+        /* Dealer 圖示的容器 */
+        .dealer-token-container {
+            display: none;
+            /* 初始隱藏，由 JS 控制顯示 */
+            justify-content: center;
+            align-items: center;
+            width: 50px;
+            height: 50px;
+            margin-right: 10px;
+            border-radius: 50%;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .dealer-token-container.active {
+            display: flex;
+            /* 當有 active class 時顯示 */
+        }
+
+        .dealer-token-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* --- 按鈕和訊息區樣式 --- */
+        input[type="button"],
+        input[type="text"] {
+            height: 50px;
+            padding: 0 20px;
+            margin: 10px;
+            background-color: #f39c12;
+            border: none;
+            color: white;
+            font-size: 18px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s ease;
+        }
+
+        input[type="button"]:hover {
+            background-color: #e67e22;
+            transform: translateY(-2px);
+        }
+
+        input[type="button"]:active {
+            background-color: #d35400;
+            transform: translateY(2px);
+        }
+
+        input[type="button"]:disabled {
+            background-color: #bdc3c7;
+            color: #ecf0f1;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+            transition: none;
+        }
+
+        input[type="text"] {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+            text-align: center;
+            width: 120px;
+        }
+
+        .button-container {
+            text-align: center;
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .game-info-area {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            /* 確保佔滿寬度 */
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        #bulletin,
+        #score {
+            font-size: 24px;
+            color: #e74c3c;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5);
+            display: block;
+            /* 改為 block 確保佔據一行 */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-top: 20px;
+            /* 為公告欄和按鈕區留點空間 */
+            width: fit-content;
+            /* 讓背景根據內容大小調整 */
+            max-width: 90%;
+            /* 防止過寬 */
+        }
+
+        /* 籌碼顯示區塊樣式 */
+        .chips-display {
+            background-color: rgba(0, 0, 0, 0.6);
+            color: #f39c12;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 20px;
+            font-weight: bold;
+            margin-left: 20px;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 新增玩家名稱樣式 */
+        .player-name {
+            font-size: 24px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            margin-right: 15px;
+        }
+
+        /* #initial-setup - 保持垂直和水平置中，但不再佔滿全屏 */
+        #initial-setup {
+            display: flex;
+            flex-direction: column;
+            /* 內部元素垂直堆疊 */
+            gap: 20px;
+            align-items: center;
+            /* 內部元素水平置中 */
+            background-color: rgba(0, 0, 0, 0.5);
+            /* 半透明背景 */
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            color: white;
+            text-align: center;
+            /* 無需設置 width/height 100%，讓它根據內容大小調整 */
+            z-index: 2;
+            /* 確保它在 game-container 上方顯示 */
+            position: relative;
+            /* 讓 z-index 生效 */
+        }
+
+        #initial-setup h2 {
+            font-size: 3em;
+            margin-bottom: 0;
+            color: #FFD700
+        }
+
+        #startGameButton {
+            padding: 15px 30px;
+            font-size: 24px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease;
+        }
+
+        #startGameButton:hover {
+            background-color: #45a049;
+        }
+
+        /* #game-container - 遊戲主界面容器 */
+        #game-container {
+            display: none;
+            /* 預設隱藏，JS控制顯示 */
+            width: 100%;
+            /* 佔據整個寬度 */
+            /* 移除 height: 100%; 讓它根據內容自動調整高度，以實現滾動 */
+            position: absolute;
+            /* 絕對定位，確保它和 initial-setup 同級 */
+            top: 0;
+            left: 0;
+            /* 移除 overflow: auto;，讓 body 控制整體滾動 */
+            /* 如果遊戲介面內部內容可能超出，但不想整個 body 滾動，再在 game-container 設置 overflow: auto; */
+
+            /* 使 #game-container 成為 Flex 容器，來佈局其內部所有遊戲元素 */
+            display: flex;
+            flex-direction: column;
+            /* 讓內部元素垂直堆疊 (標題、手牌、公共牌、按鈕區、公告欄) */
+            align-items: center;
+            /* 水平置中 #game-container 內的所有元素 */
+            padding-top: 20px;
+            /* 為頂部留點空間，避免元素緊貼視窗頂部 */
+            padding-bottom: 20px;
+            /* 為底部留點空間 */
+            box-sizing: border-box;
+            /* 確保 padding 不增加總寬高 */
+        }
+    </style>
+
+    <script defer src="/socket.io/socket.io.js"></script>
+    <script defer src="player.js"></script>
+</head>
+
+<body>
+    <div id="initial-setup" style="text-align: center; margin-top: 50px;">
+        <h2>歡迎來到德州撲克</h2>
+        <button id="startGameButton" style="padding: 10px 20px; font-size: 18px; cursor: pointer;">點擊這裡開始遊戲</button>
+    </div>
+
+    <div id="game-container" style="display: none;">
+        <div id="game-title">
+            <span>Texas Hold'em Online</span>
+        </div>
+
+        <div class="card-container" id="opponent-hand">
+            <div class="dealer-token-container" id="opponent-dealer-token">
+                <img src="resource/_dealer.jpeg" alt="Dealer Token">
+            </div>
+            <img src="resource/computer.jpg" alt="Opponent Avatar">
+            <span class="player-name">對手玩家</span> <img src="resource/blank.png" alt="Opponent Card 1"
+                id="opponent-card-1">
+            <img src="resource/blank.png" alt="Opponent Card 2" id="opponent-card-2">
+            <div class="chips-display" id="opponent-chips">
+                籌碼: $1000
+            </div>
+        </div>
+
+        <div class="card-container" id="community-cards">
+            <img src="resource/blank.png" alt="Community Card 1" id="community-card-1">
+            <img src="resource/blank.png" alt="Community Card 2" id="community-card-2">
+            <img src="resource/blank.png" alt="Community Card 3" id="community-card-3">
+            <img src="resource/blank.png" alt="Community Card 4" id="community-card-4">
+            <img src="resource/blank.png" alt="Community Card 5" id="community-card-5">
+            <div class="chips-display" id="pot-chips">
+                彩池: $0
+            </div>
+        </div>
+
+        <div class="card-container" id="player-hand">
+            <div class="dealer-token-container" id="player-dealer-token">
+                <img src="resource/_dealer.jpeg" alt="Dealer Token">
+            </div>
+            <img src="resource/player.jpg" alt="Player Avatar">
+            <span class="player-name">你</span> <img src="resource/blank.png" alt="Player Card 1" id="player-card-1">
+            <img src="resource/blank.png" alt="Player Card 2" id="player-card-2">
+            <div class="chips-display" id="player-chips">
+                籌碼: $1000
+            </div>
+        </div>
+
+        <div class="game-info-area">
+            <div class="button-container">
+                <input type="button" id="fold" value="蓋牌 (Fold)" disabled />
+                <input type="button" id="call" value="跟注 (Call)" disabled />
+                <input type="button" id="raise" value="加注 (Raise)" disabled />
+                <input type="text" id="raise-amount" placeholder="加注金額" value="20" disabled />
+
+                <input type="button" id="reconnect-button" value="重新連線 / 重新排隊" onclick="location.reload();" />
+            </div>
+            <div id="bulletin">正在等待其他玩家連線...</div>
+            <div id="score"></div>
+        </div>
+    </div>
+</body>
+
+</html>
