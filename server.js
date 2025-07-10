@@ -12,7 +12,7 @@ const io = socketIo(server);
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/Online_hold_em.html');
+    res.sendFile(__dirname + '/public/hold_em_h2h_online.html');
 });
 
 const MAX_PLAYERS_PER_ROOM = 2; // 定義每個房間的玩家數量
